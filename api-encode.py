@@ -8,6 +8,9 @@ regionid = 'cn-hangzhou'
 sgid = ''
 vsid = ''
 cgname = ''
+imageuser = ''
+imagepass = ''
+configcontent = ''
 restartpolicy = 'OnFailure'
 eciClient = AcsClient(akid,aksecret,regionid)
 request = CreateCreateContainerGroupRequest()
@@ -17,6 +20,11 @@ request.set_ContainerGroupName(cgname)
 #request.set_EipInstanceId(eip-xxx)
 request.set_RestartPolicy(restartpolicy)
 
+config = {
+	'Path':'en',
+	'Content':configcontent
+}
+
 volume1 = {
 	'Name':'temp',
 	'Type':'EmptyDirVolume',
@@ -25,7 +33,7 @@ volume1 = {
 volume2 = {
 	'Name':'scr',
 	'Type':'ConfigFileVolume',
-	'ConfigFileVolume.ConfigFileToPaths':['en']
+	'ConfigFileVolume.ConfigFileToPaths':[config]
 }
 request.set_Volumes([volume1, volume2])
 
@@ -40,16 +48,6 @@ volume_mount2 = {
 	'ReadOnly': False
 }
 
-initContainer = {
-	'Image': 'registry-vpc.cn-hangzhou.aliyuncs.com/baz/busybox:1.0',
-	'Name': 'init-liu',
-	'Cpu': 4.0,
-	'Memory': 16.0,
-	'VolumeMounts': [volume_mount1, volume_mount2],
-	'Commands':['/bin/bash'],
-	'Args': ['/scr/en'],
-	'EnvironmentVars': [env]
-}
 container1 = {
 	'Image': 'registry-vpc.cn-hangzhou.aliyuncs.com/tuzi3040/x264-encode:alpha-01',
 	'Name': 'encode',
@@ -61,7 +59,13 @@ container1 = {
 	'VolumeMounts':[volume_mount1,volume_mount2]
 }
 
-request.set_InitContainers([initContainer])
+imagecre = {
+	'Server'='registry-vpc.cn-hangzhou.aliyuncs.com',
+	'UserName'=imageuser,
+	'Password'=imagepass
+}
+
+request.set_ImageRegistryCredentials([imagecre])
 request.set_Containers([container1])
 response = eciClient.do_action_with_exception(request)
 print response
