@@ -7,10 +7,16 @@ aksecret = ''
 regionid = 'cn-hangzhou'
 sgid = ''
 vsid = ''
-cgname = ''
+cgname = 'encode-' + taskid
 imageuser = ''
 imagepass = ''
-configcontent = ''
+configcontent = '''
+#!/bin/bash
+ossutil cp "oss://encode-e1/test.mp4" /temp/t.mp4
+x264 --crf 16.0 --preset 8  -I 600 -r 4 -b 3 --me umh -i 1 --scenecut 60 -f 1:1 --qcomp 0.5 --psy-rd 0.3:0 --aq-mode 2 --aq-strength 0.8 -o "/temp/t_vtemp.mp4" "/temp/t.mp4" 2>&1 | tee /temp/t.log
+ossutil cp /temp/t_vtemp.mp4 "oss://encode-e1/test_vtemp.mp4"
+ossutil cp /temp/t.log "oss://encode-e1/t.log"
+'''
 restartpolicy = 'OnFailure'
 eciClient = AcsClient(akid,aksecret,regionid)
 request = CreateCreateContainerGroupRequest()
