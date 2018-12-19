@@ -9,24 +9,24 @@ def handler(event, context):
   eve = json.loads(event)
 
   filename = eve['headers']['X-encode-file']
+  taskid = eve['headers']['X-encode-id']
   
-  
-  akid = ''
-  aksecret = ''
+  akid = context.credentials.access_key_id
+  aksecret = context.credentials.access_key_secret
+  #aktoken = context.credentials.security_token
   regionid = 'cn-hangzhou'
-  sgid = ''
-  vsid = ''
+  sgid = eve['headers']['X-encode-sgid']
+  vsid = eve['headers']['X-encode-vsid']
   cgname = 'encode-' + taskid
-  imageuser = ''
-  imagepass = ''
+  repouser = eve['headers']['X-encode-repouser']
+  repopass = eve['headers']['X-encode-repopass']
   ossinput = 'oss://encode-e1/in/' + file + '.mp4'
   ossoutput = 'oss://encode-e1/out/' + file + '_out.mp4'
   osslog = 'oss://encode-e1/log/' + cgname + '.log'
-  configcontent = '''
-  #!/bin/bash
+  configcontent = '''#!/bin/bash
   ossutil cp ''' + ossinput + ''' /temp/t.mp4
   x264 --crf 16.0 --preset 8  -I 600 -r 4 -b 3 --me umh -i 1 --scenecut 60 -f 1:1 --qcomp 0.5 --psy-rd 0.3:0 --aq-mode 2 --aq-strength 0.8 -o "/temp/t_vtemp.mp4" "/temp/t.mp4" 2>&1 | tee /temp/t.log
-  ossutil cp /temp/t_vtemp.mp4 ''' + ossoutput + ''';
+  ossutil cp /temp/t_vtemp.mp4 ''' + ossoutput + '''
   ossutil cp /temp/t.log ''' + osslog
   
   restartpolicy = 'OnFailure'
@@ -39,19 +39,18 @@ def handler(event, context):
   request.set_RestartPolicy(restartpolicy)
   
   config = {
-  	'Path':'en',
-  	'Content':configcontent
+  	'Path': 'en',
+  	'Content': configcontent
   }
   
   volume1 = {
-  	'Name':'temp',
-  	'Type':'EmptyDirVolume',
-  	'EmptyDirVolume':True
+  	'Name': 'temp',
+  	'Type': 'EmptyDirVolume'
   }
   volume2 = {
-  	'Name':'scr',
-  	'Type':'ConfigFileVolume',
-  	'ConfigFileVolume.ConfigFileToPaths':[config]
+  	'Name': 'scr',
+  	'Type': 'ConfigFileVolume',
+  'ConfigFileVolume.ConfigFileToPaths': [config]
   }
   request.set_Volumes([volume1, volume2])
   
@@ -78,15 +77,22 @@ def handler(event, context):
   }
   
   imagecre = {
-  	'Server'='registry-vpc.cn-hangzhou.aliyuncs.com',
-  	'UserName'=imageuser,
-  	'Password'=imagepass
+  	'Server': 'registry-vpc.cn-hangzhou.aliyuncs.com',
+  	'UserName': repouser,
+  	'Password': repopass
   }
   
   request.set_ImageRegistryCredentials([imagecre])
   request.set_Containers([container1])
   response = eciClient.do_action_with_exception(request)
   print response
-
-
-  return json.dump(resp)
+  
+  resp = {
+  	'isBase64Encoded': 'false',
+  	'statusCode': '200',
+  	'headers': {
+  		'X-encode-create': 'success'
+  	}
+  	
+  }
+  return json.dumps(resp)
